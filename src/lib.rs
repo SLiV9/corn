@@ -9,19 +9,10 @@ mod wasm4;
 #[cfg(feature = "buddy-alloc")]
 mod alloc;
 
-use wasm4::*;
+mod driver;
+mod music;
 
-#[rustfmt::skip]
-const SMILEY: [u8; 8] = [
-    0b11000011,
-    0b10000001,
-    0b00100100,
-    0b00100100,
-    0b00000000,
-    0b00100100,
-    0b10011001,
-    0b11000011,
-];
+use wasm4::*;
 
 #[no_mangle]
 fn update()
@@ -34,6 +25,7 @@ fn update()
         unsafe { *DRAW_COLORS = 4 }
     }
 
-    blit(&SMILEY, 76, 76, 8, 8, BLIT_1BPP);
+    unsafe { music::ITS_CORN.step() };
+
     text("Press X to blink", 16, 90);
 }
