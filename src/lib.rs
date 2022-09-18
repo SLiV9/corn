@@ -9,23 +9,27 @@ mod wasm4;
 #[cfg(feature = "buddy-alloc")]
 mod alloc;
 
-mod driver;
 mod music;
 
 use wasm4::*;
 
+static mut TICKS: usize = 0;
+
 #[no_mangle]
 fn update()
 {
-    unsafe { *DRAW_COLORS = 2 }
-    text("Hello from Rust!", 10, 10);
+	let t = unsafe { TICKS };
 
-    let gamepad = unsafe { *GAMEPAD1 };
-    if gamepad & BUTTON_1 != 0 {
-        unsafe { *DRAW_COLORS = 4 }
-    }
+	let gamepad = unsafe { *GAMEPAD1 };
+	if gamepad & BUTTON_1 != 0
+	{
+		unsafe { *DRAW_COLORS = 4 }
+		music::play_title_theme(t, 100);
+	}
 
-    unsafe { music::ITS_CORN.step() };
+	unsafe {
+		TICKS += 1;
+	}
 
-    text("Press X to blink", 16, 90);
+	text("Press X to blink", 16, 90);
 }
