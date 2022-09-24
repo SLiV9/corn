@@ -1,22 +1,6 @@
 # Corn
 
-A game written in Rust for the [WASM-4](https://wasm4.org) fantasy console.
-
-## Building
-
-Build the cart by running:
-
-```shell
-cargo build --release
-```
-
-Then run it with:
-
-```shell
-w4 run target/wasm32-unknown-unknown/release/cart.wasm
-```
-
-For more info about setting up WASM-4, see the [quickstart guide](https://wasm4.org/docs/getting-started/setup?code-lang=rust#quickstart).
+A game written in [Penne](https://github.com/SLiV9/penne) for the [WASM-4](https://wasm4.org) fantasy console.
 
 ## Controls
 
@@ -34,6 +18,7 @@ The software is provided "as is", without warranty of any kind, express or impli
 
 ## Links
 
+- [Penne Compiler](https://github.com/SLiV9/penne): Learn more about Penne, the pasta-oriented programming language.
 - [Documentation](https://wasm4.org/docs): Learn more about WASM-4.
 - [Snake Tutorial](https://wasm4.org/docs/tutorials/snake/goal): Learn how to build a complete game
   with a step-by-step tutorial.

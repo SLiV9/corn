@@ -1,0 +1,235 @@
+//
+// Part of corn
+// Copyright (c) 2022 Sander in 't Veld
+// License: MIT
+//
+
+$"wasm4.pn"
+
+// penne_logo
+const PENNE_LOGO_WIDTH: u32 = 32;
+const PENNE_LOGO_HEIGHT: u32 = 16;
+const PENNE_LOGO_FLAGS: u32 = 1; // BLIT_2BPP
+
+const PENNE_LOGO: [128]u8 = [
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+	0x00, 0x0a, 0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xa8, 0x00, 0x08, 0x00, 0x00,
+	0x00, 0x00, 0x00, 0x08, 0x00, 0x21, 0x55, 0x55, 0x55, 0x55, 0x54, 0x20,
+	0x00, 0x20, 0x00, 0x00, 0x00, 0x00, 0x00, 0x20, 0x00, 0x85, 0x55, 0x55,
+	0x55, 0x50, 0x00, 0x80, 0x00, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80,
+	0x02, 0x15, 0x55, 0x55, 0x40, 0x00, 0x02, 0x00, 0x02, 0x00, 0x00, 0x00,
+	0x00, 0x00, 0x02, 0x00, 0x08, 0x55, 0x55, 0x00, 0x00, 0x00, 0x08, 0x00,
+	0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x08, 0x00, 0x2a, 0xaa, 0xaa, 0xaa,
+	0xaa, 0xaa, 0xa0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+];
+
+fn draw_penne_logo(x: i32, y: i32)
+{
+	DRAW_COLORS = 0x11;
+	rect(x - 60, y - 7, 120, 21);
+
+	DRAW_COLORS = 3;
+	text("PENNE", x - 38, y);
+
+	DRAW_COLORS = 0x0431;
+	blit(PENNE_LOGO, x + 5, y - 5, PENNE_LOGO_WIDTH, PENNE_LOGO_HEIGHT,
+		PENNE_LOGO_FLAGS);
+}
+
+/// Soundtrack: *corn_title_theme*
+fn play_corn_title_theme_track_1(t: usize, volume: u32)
+{
+	var sequence: []usize = [3,1,3,1];
+	var bar = t / 224;
+	var pattern = sequence[bar % |sequence|];
+	if pattern == 1
+	{
+		play_corn_title_theme_track_1_pattern_1(t, volume);
+	}
+	if pattern == 2
+	{
+		play_corn_title_theme_track_1_pattern_2(t, volume);
+	}
+	if pattern == 3
+	{
+		play_corn_title_theme_track_1_pattern_3(t, volume);
+	}
+}
+
+fn play_corn_title_theme_track_1_pattern_1(t: usize, volume: u32)
+{
+	var tt = t % 224;
+	if tt == 7
+	{
+		tone(260, 7 << 8, volume * 60 / 100, TONE_PULSE2 | TONE_MODE3);
+	}
+	if tt == 21
+	{
+		tone(260, 7 << 8, volume * 60 / 100, TONE_PULSE2 | TONE_MODE3);
+	}
+	if tt == 35
+	{
+		tone(660, 7 << 8, volume * 60 / 100, TONE_PULSE2 | TONE_MODE3);
+	}
+	if tt == 49
+	{
+		tone(520, 7 << 8, volume * 60 / 100, TONE_PULSE2 | TONE_MODE3);
+	}
+}
+
+fn play_corn_title_theme_track_1_pattern_2(t: usize, volume: u32)
+{
+	var tt = t % 224;
+	if tt == 42
+	{
+		tone(490, 14 << 8, volume * 60 / 100, TONE_PULSE2 | TONE_MODE3);
+	}
+	if tt == 70
+	{
+		tone(700, 14 << 8, volume * 60 / 100, TONE_PULSE2 | TONE_MODE3);
+	}
+	if tt == 126
+	{
+		tone(700, 14 << 8, volume * 60 / 100, TONE_PULSE2 | TONE_MODE3);
+	}
+	if tt == 154
+	{
+		tone(660, 14 << 8, volume * 60 / 100, TONE_PULSE2 | TONE_MODE3);
+	}
+	if tt == 182
+	{
+		tone(700, 14 << 8, volume * 60 / 100, TONE_PULSE2 | TONE_MODE3);
+	}
+}
+
+fn play_corn_title_theme_track_1_pattern_3(t: usize, volume: u32)
+{
+	var tt = t % 224;
+	if tt == 21
+	{
+		tone(260, 7 << 8, volume * 60 / 100, TONE_PULSE2 | TONE_MODE3);
+	}
+	if tt == 35
+	{
+		tone(1000, 7 << 8, volume * 60 / 100, TONE_PULSE2 | TONE_MODE3);
+	}
+	if tt == 49
+	{
+		tone(780, 7 << 8, volume * 60 / 100, TONE_PULSE2 | TONE_MODE3);
+	}
+	if tt == 133
+	{
+		tone(490, 7 << 8, volume * 60 / 100, TONE_PULSE2 | TONE_MODE3);
+	}
+	if tt == 147
+	{
+		tone(700, 7 << 8, volume * 60 / 100, TONE_PULSE2 | TONE_MODE3);
+	}
+	if tt == 175
+	{
+		tone(700, 7 << 8, volume * 60 / 100, TONE_PULSE2 | TONE_MODE3);
+	}
+	if tt == 189
+	{
+		tone(660, 7 << 8, volume * 60 / 100, TONE_PULSE2 | TONE_MODE3);
+	}
+	if tt == 203
+	{
+		tone(700, 7 << 8, volume * 60 / 100, TONE_PULSE2 | TONE_MODE3);
+	}
+}
+
+pub fn play_corn_title_theme_track_2(t: usize, volume: u32)
+{
+	var sequence: []usize = [1,1,1,1];
+	var bar = t / 224;
+	var pattern = sequence[bar % |sequence|];
+	if pattern == 1
+	{
+		play_corn_title_theme_track_2_pattern_1(t, volume);
+	}
+}
+
+fn play_corn_title_theme_track_2_pattern_1(t: usize, volume: u32)
+{
+	var tt = t % 224;
+	if tt == 7
+	{
+		tone(130, 7 << 8, volume * 60 / 100, TONE_TRIANGLE | TONE_MODE1);
+	}
+	if tt == 21
+	{
+		tone(130, 7 << 8, volume * 60 / 100, TONE_TRIANGLE | TONE_MODE1);
+	}
+	if tt == 35
+	{
+		tone(520, 7 << 8, volume * 60 / 100, TONE_TRIANGLE | TONE_MODE1);
+	}
+	if tt == 49
+	{
+		tone(390, 7 << 8, volume * 60 / 100, TONE_TRIANGLE | TONE_MODE1);
+	}
+	if tt == 119
+	{
+		tone(130, 7 << 8, volume * 60 / 100, TONE_TRIANGLE | TONE_MODE1);
+	}
+	if tt == 133
+	{
+		tone(130, 7 << 8, volume * 60 / 100, TONE_TRIANGLE | TONE_MODE1);
+	}
+	if tt == 147
+	{
+		tone(520, 7 << 8, volume * 60 / 100, TONE_TRIANGLE | TONE_MODE1);
+	}
+	if tt == 161
+	{
+		tone(390, 7 << 8, volume * 60 / 100, TONE_TRIANGLE | TONE_MODE1);
+	}
+}
+
+fn play_title_theme(t: usize, volume: u32)
+{
+	play_corn_title_theme_track_1(t, volume);
+	play_corn_title_theme_track_2(t, volume);
+}
+
+// We don't have mutable globals but we do have a heap we can corrupt.
+const TIME: &usize = 0xFFF8;
+
+pub extern fn update()
+{
+	PALETTE[0] = 0x211e20;
+	PALETTE[1] = 0x66605c;
+	PALETTE[2] = 0xff924f;
+	PALETTE[3] = 0xffd191;
+
+	DRAW_COLORS = 0x44;
+	rect(0, 0, SCREEN_SIZE, SCREEN_SIZE);
+
+	DRAW_COLORS = 1;
+	text("Hello from Penne!", 10, 30);
+
+	DRAW_COLORS = 2;
+
+	var gamepad = GAMEPAD1;
+	if gamepad & BUTTON_1 != 0
+	{
+		DRAW_COLORS = 4;
+
+		play_title_theme(TIME, 100);
+	}
+
+	text("Press X to blink", 16, 90);
+
+	draw_penne_logo(80, 130);
+
+	// Enforce 160x144 letterbox of GBJAM.
+	DRAW_COLORS = 0x11;
+	rect(0, 0, SCREEN_SIZE, 8);
+	rect(0, 152, SCREEN_SIZE, 8);
+
+	// Advance time.
+	TIME = TIME + 1;
+}

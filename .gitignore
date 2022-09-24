@@ -4,6 +4,7 @@
 
 # build output
 /build
+/bin
 
 # output files
 *.out
