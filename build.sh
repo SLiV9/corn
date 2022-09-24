@@ -1,5 +1,5 @@
 #!/bin/sh
-/usr/local/bin/pennec src/wasm4.pn src/main.pn --wasm || exit 1
+/usr/local/bin/pennec src/wasm4.pn src/sprites.pn src/main.pn --wasm || exit 1
 /opt/wasi-sdk/bin/clang -nostartfiles -nostdlib \
 	-Wl,--allow-undefined -Wl,--import-memory \
 	-Wl,--initial-memory=65536 -Wl,--max-memory=65536 \
