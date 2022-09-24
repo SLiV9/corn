@@ -195,8 +195,67 @@ fn play_title_theme(t: usize, volume: u32)
 	play_corn_title_theme_track_2(t, volume);
 }
 
-// We don't have mutable globals but we do have a heap we can corrupt.
-const TIME: &usize = 0xFFF8;
+fn i32_from_usize(x: usize) -> i32
+{
+	// No integer casts yet...
+	var y = 0;
+	var xx = 0;
+	{
+		if xx == x
+			goto return;
+		y = y + 1;
+		xx = xx + 1;
+		loop;
+	}
+	return: y
+}
+
+fn reflect(horizon: usize, height: i32, t: usize)
+{
+	var h = 1;
+	var ysrc = horizon;
+	var ydst = horizon;
+	var noise = 6 * t;
+	{
+		ysrc = ysrc - 2;
+		ydst = ydst + 1;
+		var jitter = noise % 91;
+		var x = 0;
+		var xdst = -1 + jitter % 3;
+		{
+			if x == 40
+				goto nextrow;
+			if xdst < 0
+				goto nextpixel;
+			if xdst >= 40
+				goto nextpixel;
+			FRAMEBUFFER[ydst * 40 + xdst] = FRAMEBUFFER[ysrc * 40 + x];
+			nextpixel:
+			x = x + 1;
+			xdst = xdst + 1;
+			loop;
+		}
+		nextrow:
+		h = h + 1;
+		if h == height
+			goto end;
+		noise = noise + 55;
+		loop;
+	}
+	end:
+}
+
+// We don't have mutable globals yet, but we do have a heap.
+const TIME: &usize = 0xF800;
+const PREVIOUS_GAMEPAD: &u8 = 0xF101;
+const MUSIC_ENABLED: &bool = 0xF300;
+
+pub extern fn start()
+{
+	TIME = 0;
+	PREVIOUS_GAMEPAD = 0;
+	MUSIC_ENABLED = !true;
+}
 
 pub extern fn update()
 {
@@ -206,24 +265,48 @@ pub extern fn update()
 	PALETTE[3] = 0xffd191;
 
 	DRAW_COLORS = 0x44;
-	rect(0, 0, SCREEN_SIZE, SCREEN_SIZE);
+	rect(0, 0, SCREEN_SIZE, 100);
 
-	DRAW_COLORS = 1;
-	text("Hello from Penne!", 10, 30);
+	DRAW_COLORS = 3;
+	oval(68, 88, 24, 24);
+	hline(0, 100, SCREEN_SIZE);
 
-	DRAW_COLORS = 2;
+	DRAW_COLORS = 0x44;
+	rect(0, 101, SCREEN_SIZE, SCREEN_SIZE - 101);
+
+	reflect(100, 20, TIME);
 
 	var gamepad = GAMEPAD1;
 	if gamepad & BUTTON_1 != 0
 	{
-		DRAW_COLORS = 4;
+		// TODO start the game
+	}
+	if gamepad & BUTTON_2 != 0
+	{
+		if PREVIOUS_GAMEPAD & BUTTON_2 == 0
+		{
+			MUSIC_ENABLED = !MUSIC_ENABLED;
+		}
+	}
 
+	if MUSIC_ENABLED == true
+	{
 		play_title_theme(TIME, 100);
 	}
 
-	text("Press X to blink", 16, 90);
+	DRAW_COLORS = 1;
+	text("It's Corn!", 40, 40);
 
-	draw_penne_logo(80, 130);
+	DRAW_COLORS = 1;
+	text("X: START", 16, 130);
+	if MUSIC_ENABLED == true
+	{
+		text("Z: MUSIC OFF", 16, 140);
+	}
+	else
+	{
+		text("Z: MUSIC ON", 16, 140);
+	}
 
 	// Enforce 160x144 letterbox of GBJAM.
 	DRAW_COLORS = 0x11;
@@ -232,4 +315,5 @@ pub extern fn update()
 
 	// Advance time.
 	TIME = TIME + 1;
+	PREVIOUS_GAMEPAD = gamepad;
 }

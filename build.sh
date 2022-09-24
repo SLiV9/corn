@@ -4,7 +4,7 @@
 	-Wl,--allow-undefined -Wl,--import-memory \
 	-Wl,--initial-memory=65536 -Wl,--max-memory=65536 \
 	-Wl,-z,stack-size=14752 -Wl,--stack-first \
-	-Wl,--no-entry -Wl,--export=update \
+	-Wl,--no-entry -Wl,--export=update -Wl,--export=start \
 	bin/src/main.pn.ll \
 	-o bin/corn-dev.wasm || exit 1
 wasm-opt bin/corn-dev.wasm -o bin/corn.wasm \
