@@ -37,9 +37,24 @@ fn u32_from_usize(x: usize) -> u32
 	return: y
 }
 
+fn rotating_shift_left(content: u64) -> u64
+{
+	var bit0 = content >> 63;
+	var shifted = content << 1;
+	return: shifted | bit0
+}
+
+fn rotating_shift_right(content: u64) -> u64
+{
+	var bit0 = content & 0b1;
+	var bit63 = bit0 << 63;
+	var shifted = content >> 1;
+	return: shifted | bit63
+}
+
 fn draw_racer(x: i32, y: i32, frame: u32)
 {
-	blitSub(RACER_SHEET, x + 1 - 12, y + 1 - 24, 24, 24,
+	blitSub(RACER_SHEET, x + 1 - 12, y + 2 - 24, 24, 24,
 		frame * 24, 0, RACER_SHEET_WIDTH, RACER_SHEET_FLAGS);
 }
 
@@ -50,6 +65,10 @@ fn draw_corn(x: i32, y: i32, scaled_distance: usize)
 	if scaled_distance < 6
 	{
 		frame = u32_from_usize(scaled_distance);
+	}
+	if frame >= 4
+	{
+		DRAW_COLORS = 0x4310;
 	}
 	blitSub(CORN_SHEET, x + 1 - 8, y + 1 - 8, 16, 16,
 		frame * 16, 0, CORN_SHEET_WIDTH, CORN_SHEET_FLAGS);
@@ -282,6 +301,7 @@ const BOOST_COOLDOWN: &usize = 0xF718;
 const DISTANCE: &usize = 0xF720;
 const SCORE: &u32 = 0xF400;
 const COMBO: &u32 = 0xF404;
+const X_OF_CAR: &i32 = 0xF408;
 const PREVIOUS_GAMEPAD: &u8 = 0xF101;
 const MUSIC_ENABLED: &bool = 0xF300;
 const IN_GAME: &bool = 0xF301;
@@ -291,10 +311,11 @@ const NUM_EXHAUSTS: usize = 8;
 const EXHAUST_DX: &[8]i32 = 0xEF00;
 const EXHAUST_COLOR: &[8]u16 = 0xEF80;
 
-const NUM_LAYERS: usize = 24;
-const LAYER_CONTENT: &[16]u64 = 0xC500;
+const NUM_LAYERS: usize = 25;
+const LAYER_CONTENT: &[25]u64 = 0xC500;
 
-const DISTANCE_BETWEEN_LAYERS: usize = 12;
+const FULL_LAYER_CONTENT: u64 = 0x5555555555555555;
+const DISTANCE_BETWEEN_LAYERS: usize = 15;
 
 pub extern fn start()
 {
@@ -305,6 +326,7 @@ pub extern fn start()
 	BOOST_COOLDOWN = 0;
 	SCORE = 0;
 	COMBO = 0;
+	X_OF_CAR = 0;
 	PREVIOUS_GAMEPAD = 0;
 	MUSIC_ENABLED = !true;
 	IN_GAME = !true;
@@ -464,7 +486,7 @@ fn draw_combo_level(y: i32)
 	}
 	else if COMBO_LEVEL >= 2
 	{
-		DRAW_COLORS = 2;
+		DRAW_COLORS = 1;
 		text("Great!", 80 + 4 - 4 * 6, y);
 	}
 	else if COMBO_LEVEL > 0
@@ -493,6 +515,35 @@ fn update_game()
 	DRAW_COLORS = 0x33;
 	rect(0, 60, SCREEN_SIZE, SCREEN_SIZE - 60);
 
+	if X_OF_CAR <= -8
+	{
+		X_OF_CAR = X_OF_CAR + 8;
+		var r = 0;
+		{
+			LAYER_CONTENT[r] = rotating_shift_right(LAYER_CONTENT[r]);
+			LAYER_CONTENT[r] = rotating_shift_right(LAYER_CONTENT[r]);
+			if r + 1 == NUM_LAYERS
+				goto done_shifting;
+			r = r + 1;
+			loop;
+		}
+		done_shifting:
+	}
+	else if X_OF_CAR >= 8
+	{
+		X_OF_CAR = X_OF_CAR - 8;
+		var r = 0;
+		{
+			LAYER_CONTENT[r] = rotating_shift_left(LAYER_CONTENT[r]);
+			LAYER_CONTENT[r] = rotating_shift_left(LAYER_CONTENT[r]);
+			if r + 1 == NUM_LAYERS
+				goto done_shifting;
+			r = r + 1;
+			loop;
+		}
+		done_shifting:
+	}
+
 	// Draw layers.
 	{
 		var new_addition = false;
@@ -500,26 +551,69 @@ fn update_game()
 		{
 			new_addition = true;
 		}
-		if new_addition == true
 		{
-			var content = LAYER_CONTENT[NUM_LAYERS - 3];
+			var hit = false;
 			var mask = 0x0000000FF0000000;
-			if content & mask != 0
+			var side = mask; //0x0000001FF8000000;
+			if X_OF_CAR != 0
 			{
-				update_score(true);
+				var xx = X_OF_CAR * X_OF_CAR;
+				var i = 0;
+				{
+					i = i + 2;
+					if i * i > xx
+						goto end_of_shifting;
+					if X_OF_CAR < 0
+					{
+						side = side << 1;
+					}
+					else if X_OF_CAR > 0
+					{
+						side = side >> 1;
+					}
+					loop;
+				}
+				end_of_shifting:
 			}
-			else
+			var r = NUM_LAYERS - 3;
+			if new_addition == true
 			{
-				update_score(false);
+				if LAYER_CONTENT[r] & mask != 0
+				{
+					hit = true;
+					LAYER_CONTENT[r] = LAYER_CONTENT[r] & !mask;
+				}
 			}
-			LAYER_CONTENT[NUM_LAYERS - 3] = content & !mask;
+			{
+				r = r + 1;
+				if r == NUM_LAYERS
+					goto end_of_hit_detection;
+				if LAYER_CONTENT[r] & side != 0
+				{
+					hit = true;
+					LAYER_CONTENT[r] = LAYER_CONTENT[r] & !side;
+				}
+				loop;
+			}
+			end_of_hit_detection:
+			if new_addition == true
+			{
+				if hit == true
+				{
+					update_score(true);
+				}
+				else
+				{
+					update_score(false);
+				}
+			}
 		}
 		var r = 0;
 		{
 			if LAYER_CONTENT[r] != 0
 			{
 				var content = LAYER_CONTENT[r];
-				var x = 2;
+				var x = 2 - 8 - X_OF_CAR;
 				var revr = NUM_LAYERS - 1 - r;
 				var scaled_distance = revr / 4;
 				var real_distance = DISTANCE_BETWEEN_LAYERS * revr - DISTANCE;
@@ -528,10 +622,10 @@ fn update_game()
 				var dy = 90 * closeness * closeness / max / max;
 				var y = 57 + i32_from_usize(dy);
 				var c: i32 = 0;
-				var mask = 1 << 12;
-				mask = mask << 40;
+				var mask = 1 << 10;
+				mask = mask << 44;
 				{
-					if c == 40
+					if c == 44
 						goto end_of_row;
 					mask = mask >> 1;
 					if content & mask != 0
@@ -555,15 +649,17 @@ fn update_game()
 			r = r - 1;
 			if r == 0
 			{
-				var placement = 10;
-				var offset = 11 + 2 * placement;
+				var mask = 0x0000FFFFFFFF0000;
+				var content = FULL_LAYER_CONTENT & mask;
 				if PLACEMENT_ODD == true
 				{
-					offset = offset + 1;
+					LAYER_CONTENT[r] = rotating_shift_left(content);
+				}
+				else
+				{
+					LAYER_CONTENT[r] = content;
 				}
 				PLACEMENT_ODD = !PLACEMENT_ODD;
-				offset = offset - 6;
-				LAYER_CONTENT[r] = 0b1010101010101 << offset;
 				goto done_adding;
 			}
 			LAYER_CONTENT[r] = LAYER_CONTENT[r - 1];
@@ -707,6 +803,8 @@ fn update_game()
 	{
 		DISTANCE = DISTANCE + 1;
 	}
+
+	X_OF_CAR = X_OF_CAR + dx;
 }
 
 pub extern fn update()
