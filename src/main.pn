@@ -43,6 +43,18 @@ fn draw_racer(x: i32, y: i32, frame: u32)
 		frame * 24, 0, RACER_SHEET_WIDTH, RACER_SHEET_FLAGS);
 }
 
+fn draw_corn(x: i32, y: i32, scaled_distance: usize)
+{
+	DRAW_COLORS = 0x4210;
+	var frame = 6;
+	if scaled_distance < 6
+	{
+		frame = u32_from_usize(scaled_distance);
+	}
+	blitSub(CORN_SHEET, x + 1 - 8, y + 1 - 8, 16, 16,
+		frame * 16, 0, CORN_SHEET_WIDTH, CORN_SHEET_FLAGS);
+}
+
 fn draw_titlescreen_background(x: i32, y: i32)
 {
 	DRAW_COLORS = 0x3210;
@@ -273,10 +285,16 @@ const COMBO: &u32 = 0xF404;
 const PREVIOUS_GAMEPAD: &u8 = 0xF101;
 const MUSIC_ENABLED: &bool = 0xF300;
 const IN_GAME: &bool = 0xF301;
+const PLACEMENT_ODD: &bool = 0xF302;
 
 const NUM_EXHAUSTS: usize = 8;
 const EXHAUST_DX: &[8]i32 = 0xEF00;
 const EXHAUST_COLOR: &[8]u16 = 0xEF80;
+
+const NUM_LAYERS: usize = 24;
+const LAYER_CONTENT: &[16]u64 = 0xC500;
+
+const DISTANCE_BETWEEN_LAYERS: usize = 12;
 
 pub extern fn start()
 {
@@ -290,16 +308,31 @@ pub extern fn start()
 	PREVIOUS_GAMEPAD = 0;
 	MUSIC_ENABLED = !true;
 	IN_GAME = !true;
+	PLACEMENT_ODD = !true;
 
-	var i = 0;
 	{
-		if i == NUM_EXHAUSTS
-			goto end;
-		i = i + 1;
-		EXHAUST_COLOR[i] = 0;
-		loop;
+		var i = 0;
+		{
+			if i == NUM_EXHAUSTS
+				goto end;
+			i = i + 1;
+			EXHAUST_COLOR[i] = 0;
+			loop;
+		}
+		end:
 	}
-	end:
+
+	{
+		var i = 0;
+		{
+			if i == NUM_LAYERS
+				goto end;
+			i = i + 1;
+			LAYER_CONTENT[i] = 0x0;
+			loop;
+		}
+		end:
+	}
 }
 
 fn update_menu()
@@ -351,27 +384,35 @@ fn update_menu()
 	}
 }
 
-fn update_score()
+fn update_score(got_point: bool)
 {
+	if got_point == false
+	{
+		COMBO = 0;
+	}
 	var thresholds: []u32 = [0, 1, 10, 25, 50, 100];
 	var gains: []u32 = [1, 5, 10, 25, 50, 100];
 	var i = 0;
 	{
 		if i == 5
-			goto gain;
+			goto update;
 		if COMBO < thresholds[i + 1]
-			goto gain;
+			goto update;
 		i = i + 1;
 		loop;
 	}
-	gain:
+	update:
 	COMBO_LEVEL = i;
-	if COMBO_LEVEL > 0
+	if got_point == true
 	{
-		var correction = SCORE % 5;
-		SCORE = SCORE - correction;
+		if COMBO_LEVEL > 0
+		{
+			var correction = SCORE % 5;
+			SCORE = SCORE - correction;
+		}
+		SCORE = SCORE + gains[COMBO_LEVEL];
+		COMBO = COMBO + 1;
 	}
-	SCORE = SCORE + gains[COMBO_LEVEL];
 }
 
 fn draw_score(score: u32, x_of_right: i32, y: i32)
@@ -407,14 +448,29 @@ fn draw_combo_level(y: i32)
 	if COMBO_LEVEL >= 5
 	{
 		DRAW_COLORS = 3;
-		text("CORNTASTIC!", 36 + 1, y);
+		text("CORNTASTIC!", 80 + 4 - 4 * 11 + 1, y);
 		DRAW_COLORS = 1;
-		text("CORNTASTIC!", 36, y);
+		text("CORNTASTIC!", 80 + 4 - 4 * 11, y);
+	}
+	else if COMBO_LEVEL >= 4
+	{
+		DRAW_COLORS = 1;
+		text("Wonderful!", 80 + 4 - 4 * 10, y);
+	}
+	else if COMBO_LEVEL >= 3
+	{
+		DRAW_COLORS = 1;
+		text("Amazing!", 80 + 4 - 4 * 8, y);
+	}
+	else if COMBO_LEVEL >= 2
+	{
+		DRAW_COLORS = 2;
+		text("Great!", 80 + 4 - 4 * 6, y);
 	}
 	else if COMBO_LEVEL > 0
 	{
-		DRAW_COLORS = 1;
-		text("Good!", 64, y);
+		DRAW_COLORS = 3;
+		text("Good!", 80 + 4 - 4 * 5, y);
 	}
 }
 
@@ -436,6 +492,89 @@ fn update_game()
 
 	DRAW_COLORS = 0x33;
 	rect(0, 60, SCREEN_SIZE, SCREEN_SIZE - 60);
+
+	// Draw layers.
+	{
+		var new_addition = false;
+		if DISTANCE / DISTANCE_BETWEEN_LAYERS > 0
+		{
+			new_addition = true;
+		}
+		if new_addition == true
+		{
+			var content = LAYER_CONTENT[NUM_LAYERS - 3];
+			var mask = 0x0000000FF0000000;
+			if content & mask != 0
+			{
+				update_score(true);
+			}
+			else
+			{
+				update_score(false);
+			}
+			LAYER_CONTENT[NUM_LAYERS - 3] = content & !mask;
+		}
+		var r = 0;
+		{
+			if LAYER_CONTENT[r] != 0
+			{
+				var content = LAYER_CONTENT[r];
+				var x = 2;
+				var revr = NUM_LAYERS - 1 - r;
+				var scaled_distance = revr / 4;
+				var real_distance = DISTANCE_BETWEEN_LAYERS * revr - DISTANCE;
+				var max = DISTANCE_BETWEEN_LAYERS * NUM_LAYERS;
+				var closeness = max - real_distance;
+				var dy = 90 * closeness * closeness / max / max;
+				var y = 57 + i32_from_usize(dy);
+				var c: i32 = 0;
+				var mask = 1 << 12;
+				mask = mask << 40;
+				{
+					if c == 40
+						goto end_of_row;
+					mask = mask >> 1;
+					if content & mask != 0
+					{
+						draw_corn(x, y, scaled_distance);
+					}
+					x = x + 4;
+					c = c + 1;
+					loop;
+				}
+				end_of_row:
+			}
+			r = r + 1;
+			if r == NUM_LAYERS
+				goto done_drawing;
+			loop;
+		}
+		done_drawing:
+		if new_addition == true
+		{
+			r = r - 1;
+			if r == 0
+			{
+				var placement = 10;
+				var offset = 11 + 2 * placement;
+				if PLACEMENT_ODD == true
+				{
+					offset = offset + 1;
+				}
+				PLACEMENT_ODD = !PLACEMENT_ODD;
+				offset = offset - 6;
+				LAYER_CONTENT[r] = 0b1010101010101 << offset;
+				goto done_adding;
+			}
+			LAYER_CONTENT[r] = LAYER_CONTENT[r - 1];
+			loop;
+		}
+		done_adding:
+		if new_addition == true
+		{
+			DISTANCE = DISTANCE % DISTANCE_BETWEEN_LAYERS;
+		}
+	}
 
 	var gamepad = GAMEPAD1;
 	if gamepad & BUTTON_2 != 0
@@ -543,13 +682,12 @@ fn update_game()
 			loop;
 		}
 		done_drawing:
+		if new_addition == true
 		{
 			var ddx = 0;
-			if new_addition == false
-				goto end;
 			i = i - 1;
 			if i == 0
-				goto end;
+				goto done_adding;
 			if i == 1
 			{
 				ddx = -dx;
@@ -558,7 +696,7 @@ fn update_game()
 			EXHAUST_COLOR[i] = EXHAUST_COLOR[i - 1];
 			loop;
 		}
-		end:
+		done_adding:
 	}
 
 	if BOOST_REMAINING > 0
@@ -568,12 +706,6 @@ fn update_game()
 	else
 	{
 		DISTANCE = DISTANCE + 1;
-	}
-
-	if DISTANCE / 15 > 0
-	{
-		update_score();
-		DISTANCE = DISTANCE % 15;
 	}
 }
 
