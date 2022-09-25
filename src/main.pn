@@ -37,6 +37,21 @@ fn u32_from_usize(x: usize) -> u32
 	return: y
 }
 
+fn u64_from_u32(x: u32) -> u64
+{
+	// No integer casts yet...
+	var y = 0;
+	var xx = 0;
+	{
+		if xx == x
+			goto return;
+		y = y + 1;
+		xx = xx + 1;
+		loop;
+	}
+	return: y
+}
+
 fn rotating_shift_left(content: u64) -> u64
 {
 	var bit0 = content >> 63;
@@ -302,6 +317,8 @@ const DISTANCE: &usize = 0xF720;
 const SCORE: &u32 = 0xF400;
 const COMBO: &u32 = 0xF404;
 const X_OF_CAR: &i32 = 0xF408;
+const X_OF_TARGET: &u32 = 0xF40c;
+const RANDOM_NOISE: &u32 = 0xF410;
 const PREVIOUS_GAMEPAD: &u8 = 0xF101;
 const MUSIC_ENABLED: &bool = 0xF300;
 const IN_GAME: &bool = 0xF301;
@@ -314,7 +331,6 @@ const EXHAUST_COLOR: &[8]u16 = 0xEF80;
 const NUM_LAYERS: usize = 25;
 const LAYER_CONTENT: &[25]u64 = 0xC500;
 
-const FULL_LAYER_CONTENT: u64 = 0x5555555555555555;
 const DISTANCE_BETWEEN_LAYERS: usize = 15;
 
 pub extern fn start()
@@ -327,8 +343,10 @@ pub extern fn start()
 	SCORE = 0;
 	COMBO = 0;
 	X_OF_CAR = 0;
+	X_OF_TARGET = 32;
+	RANDOM_NOISE = 0;
 	PREVIOUS_GAMEPAD = 0;
-	MUSIC_ENABLED = !true;
+	MUSIC_ENABLED = true;
 	IN_GAME = !true;
 	PLACEMENT_ODD = !true;
 
@@ -395,6 +413,7 @@ fn update_menu()
 	var gamepad = GAMEPAD1;
 	if gamepad & BUTTON_1 != 0
 	{
+		RANDOM_NOISE = u32_from_usize(TIME);
 		IN_GAME = true;
 	}
 	if gamepad & BUTTON_2 != 0
@@ -648,26 +667,26 @@ fn update_game()
 		{
 			r = r - 1;
 			if r == 0
-			{
-				var mask = 0x0000FFFFFFFF0000;
-				var content = FULL_LAYER_CONTENT & mask;
-				if PLACEMENT_ODD == true
-				{
-					LAYER_CONTENT[r] = rotating_shift_left(content);
-				}
-				else
-				{
-					LAYER_CONTENT[r] = content;
-				}
-				PLACEMENT_ODD = !PLACEMENT_ODD;
 				goto done_adding;
-			}
 			LAYER_CONTENT[r] = LAYER_CONTENT[r - 1];
 			loop;
 		}
 		done_adding:
 		if new_addition == true
 		{
+			var content = 1u64 << u64_from_u32(X_OF_TARGET);
+			LAYER_CONTENT[r] = content;
+			if 2u32 * RANDOM_NOISE < RANDOM_NOISE
+			{
+				var t = 64 + X_OF_TARGET + 1;
+				X_OF_TARGET = t % 64;
+			}
+			else
+			{
+				var t = 64 + X_OF_TARGET - 1;
+				X_OF_TARGET = t % 64;
+			}
+			RANDOM_NOISE = 1664525 * RANDOM_NOISE + 1013904223;
 			DISTANCE = DISTANCE % DISTANCE_BETWEEN_LAYERS;
 		}
 	}
