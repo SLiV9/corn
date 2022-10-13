@@ -7,51 +7,6 @@
 $"wasm4.pn"
 $"sprites.pn"
 
-fn i32_from_usize(x: usize) -> i32
-{
-	// No integer casts yet...
-	var y = 0;
-	var xx = 0;
-	{
-		if xx == x
-			goto return;
-		y = y + 1;
-		xx = xx + 1;
-		loop;
-	}
-	return: y
-}
-
-fn u32_from_usize(x: usize) -> u32
-{
-	// No integer casts yet...
-	var y = 0;
-	var xx = 0;
-	{
-		if xx == x
-			goto return;
-		y = y + 1;
-		xx = xx + 1;
-		loop;
-	}
-	return: y
-}
-
-fn u64_from_u32(x: u32) -> u64
-{
-	// No integer casts yet...
-	var y = 0;
-	var xx = 0;
-	{
-		if xx == x
-			goto return;
-		y = y + 1;
-		xx = xx + 1;
-		loop;
-	}
-	return: y
-}
-
 fn rotating_shift_left(content: u64) -> u64
 {
 	var bit0 = content >> 63;
@@ -79,7 +34,7 @@ fn draw_corn(x: i32, y: i32, scaled_distance: usize)
 	var frame = 6;
 	if scaled_distance < 6
 	{
-		frame = u32_from_usize(scaled_distance);
+		frame = scaled_distance as u32;
 	}
 	if frame >= 4
 	{
@@ -413,7 +368,7 @@ fn update_menu()
 	var gamepad = GAMEPAD1;
 	if gamepad & BUTTON_1 != 0
 	{
-		RANDOM_NOISE = u32_from_usize(TIME);
+		RANDOM_NOISE = TIME as u32;
 		IN_GAME = true;
 	}
 	if gamepad & BUTTON_2 != 0
@@ -639,7 +594,7 @@ fn update_game()
 				var max = DISTANCE_BETWEEN_LAYERS * NUM_LAYERS;
 				var closeness = max - real_distance;
 				var dy = 90 * closeness * closeness / max / max;
-				var y = 57 + i32_from_usize(dy);
+				var y = 57 + dy as i32;
 				var c: i32 = 0;
 				var mask = 1 << 10;
 				mask = mask << 44;
@@ -674,7 +629,8 @@ fn update_game()
 		done_adding:
 		if new_addition == true
 		{
-			var content = 1u64 << u64_from_u32(X_OF_TARGET);
+			var xoftarget = X_OF_TARGET as u64;
+			var content = 1u64 << xoftarget;
 			LAYER_CONTENT[r] = content;
 			if 2u32 * RANDOM_NOISE < RANDOM_NOISE
 			{
@@ -723,8 +679,8 @@ fn update_game()
 
 	var dx = 0;
 	var alt = 0;
-	var frame_offset = u32_from_usize(TIME / 9);
-	var exhaust_dy = frame_offset % 2;
+	var frame_offset = TIME as u32 / 9;
+	var exhaust_dy = frame_offset as i32 % 2;
 	if BOOST_REMAINING > 0
 	{
 		alt = 3;
