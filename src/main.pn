@@ -4,8 +4,8 @@
 // License: MIT
 //
 
-$"wasm4.pn"
-$"sprites.pn"
+import "wasm4.pn";
+import "sprites.pn";
 
 fn rotating_shift_left(content: u64) -> u64
 {
